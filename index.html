@@ -23,28 +23,13 @@
         Chat.guide.start();
 
         // grab messages on page load
-        fetchText();
-
-        //Attempting to create call back functions for Beaufitying time
-        function beautifyTime(dateTime) {
-            var hours = dateTime.getHours();
-            var minutes = dateTime.getMinutes();
-            var seconds = dateTime.getSeconds();
-
-            // Create function to convert to standard time
-            hours = hours % 12;
-            hours = hours ? hours : 12; // the hour '0' should be '12'
-            finalStamp = hours + ":" + ('0' + minutes).slice(-2) + ":" + ('0' + seconds).slice(-2) + " " + ampm;
-
-            // To be continued
-            dateTime = hours + ":" + ('0' + minutes).slice(-2) + ":" + ('0' + seconds).slice(-2) + " " + ampm;
-        }
+        fetch();
 
         // Create array for messages in queue
         var shownMessages = [];
 
         //AJAX FETCH
-        function fetchText() {
+        function fetch() {
             //Get request
             $.get("https://api.parse.com/1/classes/chats").success(function (response) {
                 //iterate over each response object
@@ -54,33 +39,31 @@
                     if ($.inArray(el.objectId, shownMessages) == -1) {
                         shownMessages.push(el.objectId);
 
-                        // Sort the responses coming back
+                        // Beautify the time in an ugly way
                         var timeStamp = new Date(el.createdAt);
-                        
 
-                        // var hours = timeStamp.getHours();
-                        // var minutes = timeStamp.getMinutes();
-                        // var seconds = timeStamp.getSeconds();
+                        var hours = timeStamp.getHours();
+                        var minutes = timeStamp.getMinutes();
+                        var seconds = timeStamp.getSeconds();
 
-                        // //Create function to check AM/PM
-                        // var ampm = hours >= 12 ? 'pm' : 'am';
+                        // Check AM/PM
+                        var ampm = hours >= 12 ? 'pm' : 'am';
 
-                        // // Create function to convert to standard time
-                        // hours = hours % 12;
-                        // hours = hours ? hours : 12; // the hour '0' should be '12'
-                        // finalStamp = hours + ":" + ('0' + minutes).slice(-2) + ":" + ('0' + seconds).slice(-2) + " " + ampm;
+                        // Convert to standard time
+                        hours = hours % 12;
+                        hours = hours ? hours : 12; // the hour '0' should be '12'
+                        finalStamp = hours + ":" + ('0' + minutes).slice(-2) + ":" + ('0' + seconds).slice(-2) + " " + ampm;
 
-                        // sort by date ascending
+                        // Sort by date ascending
                         response.results.sort(function (a, b) {
                             var dateA = new Date(a.createdAt),
                                 dateB = new Date(b.createdAt);
                             return dateA - dateB;
                         });
 
-                        // Add list element with text and timestamp
-                        $('.message').append('<li>' + el.text + '<span>' + timeStamp + '</span>' + '</li>').addClass("animated fadeInDown");
+                        $('.message').append('<li>' + el.text + '<span>' + finalStamp + '</span>' + '</li>').addClass("animated fadeInDown");
                         console.log(el);
-                    }
+                    } 
                 });
             }).error(function () {
                 $('.message').append('<li>API Connection lost... </li>').addClass("animated fadeInDown");
@@ -88,30 +71,34 @@
             });
         }
 
-        function sendText() {
-            //Create object of input value
-            var inputValue; 
-            inputValue.text = $('input').val();
 
-            $.post("https://api.parse.com/1/classes/chats", JSON.stringify(inputValue))
+        function send() {
+            var message = new Object(); 
+            message.text = Chat.username + ": " + $('input').val();
+
+            $.post("https://api.parse.com/1/classes/chats", JSON.stringify(message))
                 .done(function (data) {
                 console.log("The message has been sent");
+                // Wipe input field clean
                 $('input').val("");
             }).error(function () {
-                console.log('Something horrible has happened.. but this is what we got: ' + inputValue.text);
+                console.log('Something horrible has happened.. but this is what we got: ' + message.text);
             });
         }
 
+        // Refresh list every three seconds
         setInterval(function () {
-            fetchText();
+            fetch();
+            //auto scroll so that the last message is displayed at bottom of feed
+            $('#message-list').animate({scrollTop: $('li:last-child').offset().top});
         }, 3000);
 
-        $('.send').on('click', sendText);
+        $('.send').on('click', send);
 
         $('input').keydown(function (event) {
             if (event.which == 13) {
                 event.preventDefault();
-                sendText();
+                send();
             }
         });
     });
@@ -119,8 +106,8 @@
 
     <div class="container">
 
-      <h2>Broken Chat</h2>
-      <div class="message">
+      <h2 id="title">Broken Chat</h2>
+      <div id="message-list" class="message">
           <ul class="messages">
 
           </ul>
