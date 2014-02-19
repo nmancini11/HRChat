@@ -1,0 +1,136 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Nick Mancini's - Chatbuilder</title>
+
+    <link href="css/styles.css" rel="stylesheet">
+    <link href="css/animate.css" rel="stylesheet">
+    <link href='http://fonts.googleapis.com/css?family=Istok+Web:400,700|Russo+One|Titillium+Web:400,300,200' rel='stylesheet' type='text/css'>
+
+    <script src="http://chatbuilder.hackreactor.com/ChatBuilder.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+  </head>
+  <body>
+
+    <script>
+    $(document).ready(function () {
+        // delete Chat.display;
+        // delete Chat.fetch;
+        // delete Chat.send;
+
+        Chat.guide.start();
+
+        // grab messages on page load
+        fetchText();
+
+        //Attempting to create call back functions for Beaufitying time
+        function beautifyTime(dateTime) {
+            var hours = dateTime.getHours();
+            var minutes = dateTime.getMinutes();
+            var seconds = dateTime.getSeconds();
+
+            // Create function to convert to standard time
+            hours = hours % 12;
+            hours = hours ? hours : 12; // the hour '0' should be '12'
+            finalStamp = hours + ":" + ('0' + minutes).slice(-2) + ":" + ('0' + seconds).slice(-2) + " " + ampm;
+
+            // To be continued
+            dateTime = hours + ":" + ('0' + minutes).slice(-2) + ":" + ('0' + seconds).slice(-2) + " " + ampm;
+        }
+
+        // Create array for messages in queue
+        var shownMessages = [];
+
+        //AJAX FETCH
+        function fetchText() {
+            //Get request
+            $.get("https://api.parse.com/1/classes/chats").success(function (response) {
+                //iterate over each response object
+                $(response.results).each(function (i, el) {
+                    // Check if objectId is not in the array
+                    // if it is not in the array (value is -1) and if statement continues
+                    if ($.inArray(el.objectId, shownMessages) == -1) {
+                        shownMessages.push(el.objectId);
+
+                        // Sort the responses coming back
+                        var timeStamp = new Date(el.createdAt);
+                        
+
+                        // var hours = timeStamp.getHours();
+                        // var minutes = timeStamp.getMinutes();
+                        // var seconds = timeStamp.getSeconds();
+
+                        // //Create function to check AM/PM
+                        // var ampm = hours >= 12 ? 'pm' : 'am';
+
+                        // // Create function to convert to standard time
+                        // hours = hours % 12;
+                        // hours = hours ? hours : 12; // the hour '0' should be '12'
+                        // finalStamp = hours + ":" + ('0' + minutes).slice(-2) + ":" + ('0' + seconds).slice(-2) + " " + ampm;
+
+                        // sort by date ascending
+                        response.results.sort(function (a, b) {
+                            var dateA = new Date(a.createdAt),
+                                dateB = new Date(b.createdAt);
+                            return dateA - dateB;
+                        });
+
+                        // Add list element with text and timestamp
+                        $('.message').append('<li>' + el.text + '<span>' + timeStamp + '</span>' + '</li>').addClass("animated fadeInDown");
+                        console.log(el);
+                    }
+                });
+            }).error(function () {
+                $('.message').append('<li>API Connection lost... </li>').addClass("animated fadeInDown");
+                console.log('Something horrible has happened..API Connection lost.');
+            });
+        }
+
+        function sendText() {
+            //Create object of input value
+            var inputValue; 
+            inputValue.text = $('input').val();
+
+            $.post("https://api.parse.com/1/classes/chats", JSON.stringify(inputValue))
+                .done(function (data) {
+                console.log("The message has been sent");
+                $('input').val("");
+            }).error(function () {
+                console.log('Something horrible has happened.. but this is what we got: ' + inputValue.text);
+            });
+        }
+
+        setInterval(function () {
+            fetchText();
+        }, 3000);
+
+        $('.send').on('click', sendText);
+
+        $('input').keydown(function (event) {
+            if (event.which == 13) {
+                event.preventDefault();
+                sendText();
+            }
+        });
+    });
+    </script>
+
+    <div class="container">
+
+      <h2>Broken Chat</h2>
+      <div class="message">
+          <ul class="messages">
+
+          </ul>
+      </div>
+
+      <div class="input">
+        <input class="draft" type="text"/> 
+        <button class="send">Send</button>
+      </div>
+      
+    </div>
+  </body>
+</html>
